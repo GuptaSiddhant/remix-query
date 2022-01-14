@@ -1,0 +1,16 @@
+{
+  "name": "remix-query",
+  "version": "0.0.0",
+  "description": "Query for Remix-Run",
+  "scripts": {},
+  "keywords": [
+    "remix-run",
+    "remix",
+    "react",
+    "query",
+    "api"
+  ],
+  "author": "Siddhant Gupta <me@guptasiddhant.com>",
+  "license": "MIT",
+  "repository": "guptasiddhant/remix-query"
+}
