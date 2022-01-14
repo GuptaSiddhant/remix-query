@@ -4,32 +4,26 @@ Keep your loader data in sync in your component without reloading the page.
 
 ## useLoaderQuery
 
-The simple utility uses remix's `useFetcher` to keep loader data in-sync at client-side without reloading the page. ([View source](./src/useLoaderQuery.ts))
+The hook to keep loader data of any (current or other) route in-sync at client-side without reloading the page. ([View source](./src/useLoaderQuery.ts))
 
 ```tsx
 import { useLoaderQuery } from "remix-query";
 ```
 
-- Get loader data along with a `reload` function.
+- Current route
 
   ```tsx
+  // No polling
   const { data, loading, reload } = useLoaderQuery<DataType>();
+  // With polling
+  const { data, loading } = useLoaderQuery<DataType>(5000);
   ```
 
-- Get loader data for another route's loader.
+- Other route
 
   ```tsx
-  const { data, loading, reload } = useLoaderQuery<DataType>({ pathname "/other/route" });
-  ```
-
-- Get initial loader data and poll it after each interval.
-
-  ```tsx
-  const { data, loading } = useLoaderQuery<DataType>({ reloadInterval: 5000 });
-  ```
-
-- Get initial loader data for other's route data and poll it after each interval.
-
-  ```tsx
-  const { data, loading } = useLoaderQuery<DataType>({ pathname "/other/route", reloadInterval: 5000 });
+  // No polling
+  const { data, loading, reload } = useLoaderQuery<DataType>("/other/route");
+  // With polling
+  const { data, loading } = useLoaderQuery<DataType>("/other/route", 5000);
   ```

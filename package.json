@@ -1,6 +1,6 @@
 {
   "name": "remix-query",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Query for Remix-Run",
   "keywords": [
     "remix-run",
@@ -22,6 +22,7 @@
     "build": "node scripts/esbuild.js",
     "postbuild": "tsc",
     "prebuild": "rm -rf dist || true",
+    "prepublishOnly": "npm run build",
     "dev": "node scripts/esbuild.js watch"
   },
   "peerDependencies": {

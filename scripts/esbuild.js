@@ -3,23 +3,33 @@
 
 const args = process.argv.slice(2);
 const watch = args.includes("watch");
+const esbuild = require("esbuild");
 
 /** @type import("esbuild").BuildOptions */
-const buildOptions = {
+const commonBuildOptions = {
   entryPoints: ["src/index.ts"],
-  outfile: "dist/index.cjs",
-  bundle: true,
-  platform: "node",
-  watch,
   color: true,
-  logLevel: "info",
+  bundle: true,
   external: ["react", "@remix-run/*"],
+  logLevel: "info",
 };
 
-require("esbuild")
-  .build(buildOptions)
+esbuild
+  .build({
+    ...commonBuildOptions,
+    outfile: "dist/index.js",
+    platform: "neutral",
+    watch,
+  })
   .catch(() => process.exit(1));
 
-require("esbuild")
-  .build({ ...buildOptions, outfile: "dist/index.js", platform: "neutral" })
-  .catch(() => process.exit(1));
+if (!watch) {
+  esbuild
+    .build({
+      ...commonBuildOptions,
+      minify: true,
+      outfile: "dist/index.cjs",
+      platform: "node",
+    })
+    .catch(() => process.exit(1));
+}

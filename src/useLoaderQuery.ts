@@ -1,41 +1,104 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { useFetcher, useLoaderData, useLocation } from "@remix-run/react";
+import {
+  useFetcher,
+  useLocation,
+  useLoaderData,
+  useMatches,
+  useTransition,
+} from "@remix-run/react";
 
 /**
- * - Get loader data along with a `reload` function.
- *   ```tsx
- *   const { data, loading, reload } = useLoaderQuery<DataType>();
- *   ```
+ * The hook to keep loader data of another route
+ * in-sync at client-side without reloading the page.
  *
- * - Get loader data for another route's loader.
- *   ```tsx
- *   const { data, loading, reload } = useLoaderQuery<DataType>({ pathname "/other/route" });
- *   ```
- *
- * - Get initial loader data and poll it after each interval.
- *   ```tsx
- *   const { data, loading } = useLoaderQuery<DataType>({ reloadInterval: 5000 });
- *   ```
- *
- * - Get initial loader data for other's route data and poll it after each interval.
- *   ```tsx
- *   const { data, loading } = useLoaderQuery<DataType>({ pathname "/other/route", reloadInterval: 5000 });
- *   ```
+ * ```tsx
+ * // No polling
+ * const { data, loading, reload } = useLoaderQuery<DataType>("/other/route");
+ * // With polling
+ * const { data, loading, reload } = useLoaderQuery<DataType>("/other/route", 5000);
+ * ```
  */
 export function useLoaderQuery<DataType = any>(
-  options: LoaderQueryOptions = {}
-): LoaderQueryReturn<DataType> {
-  const { pathname: currentPathname } = useLocation();
-  const loaderData = useLoaderData<DataType>();
-  const { load, state, data } = useFetcher<DataType>();
-  const { reloadInterval, pathname = currentPathname } = options;
+  /** Other route whose loader is used to fetch data. */
+  route?: string | undefined,
+  /** Enable polling of data by providing interval in milliseconds. @default 0 */
+  reloadInterval?: number
+): LoaderQueryReturn<DataType>;
 
-  const reload = useCallback(() => load(pathname), [load, pathname]);
-  const loading: boolean = useMemo(() => state !== "idle", [state]);
-  const queryData: DataType = useMemo(
-    () => data || loaderData,
-    [loaderData, data]
+/**
+ * The hook to keep loader data of current route
+ * in-sync at client-side without reloading the page.
+ *
+ * ```tsx
+ * // No polling
+ * const { data, loading, reload } = useLoaderQuery<DataType>();
+ * // With polling
+ * const { data, loading, reload } = useLoaderQuery<DataType>(5000);
+ * ```
+ */
+export function useLoaderQuery<DataType = any>(
+  /** Enable polling of data by providing interval in milliseconds. @default 0 */
+  reloadInterval?: number
+): Required<LoaderQueryReturn<DataType>>;
+
+export function useLoaderQuery<DataType = any>(
+  arg1?: string | number,
+  arg2?: number
+): LoaderQueryReturn<DataType> {
+  const options = useOptions(arg1, arg2);
+  const server = useServerData<DataType>(options);
+  const client = useClientData<DataType>(options, !!server.data);
+
+  const data: DataType | undefined = useMemo(
+    () => client.data || server.data,
+    [client.data, server.data]
   );
+
+  const loading: boolean = useMemo(
+    () => client.loading || server.loading,
+    [client.loading, server.loading]
+  );
+
+  return { data, loading, reload: client.reload };
+}
+
+function useOptions(arg1?: string | number, arg2?: number) {
+  const { pathname } = useLocation();
+  const route: string = typeof arg1 === "string" ? arg1 : pathname;
+  const reloadInterval: number | undefined =
+    typeof arg1 === "number" ? arg1 : arg2;
+  const currentRoute: boolean = route === pathname;
+
+  return { route, reloadInterval, currentRoute };
+}
+
+function useServerData<DataType = any>({
+  route,
+  currentRoute,
+}: ReturnType<typeof useOptions>): {
+  data: DataType | undefined;
+  loading: boolean;
+} {
+  const loaderData = useLoaderData<DataType>();
+  const { state } = useTransition();
+  const loading: boolean = useMemo(() => state === "submitting", [state]);
+  const matchData = useMatches().find((match) => match.pathname === route)
+    ?.data as DataType;
+
+  return { data: currentRoute ? loaderData : matchData, loading };
+}
+
+function useClientData<DataType = any>(
+  { reloadInterval, route }: ReturnType<typeof useOptions>,
+  serverData: boolean
+): {
+  data: DataType | undefined;
+  loading: boolean;
+  reload: () => void;
+} {
+  const { load, state, data } = useFetcher<DataType>();
+  const reload = useCallback(() => load(route), [load, route]);
+  const loading: boolean = useMemo(() => state !== "idle", [state]);
 
   // Setup fetch polling
   useEffect(() => {
@@ -44,21 +107,17 @@ export function useLoaderQuery<DataType = any>(
     return () => clearInterval(interval);
   }, [reloadInterval, reload]);
 
-  // Fetching data from different pathname than current loader.
+  // Initial fetch for different route on client-side
+  // if not already loaded on server-side
   useEffect(() => {
-    if (currentPathname !== pathname) reload();
-  }, [currentPathname, pathname, reload]);
+    if (!serverData) reload();
+  }, [reload, serverData]);
 
-  return { data: queryData, loading, reload };
+  return { reload, loading, data };
 }
 
-export interface LoaderQueryOptions {
-  reloadInterval?: number;
-  pathname?: string;
-}
-
-export interface LoaderQueryReturn<DataType> {
-  data: DataType;
+interface LoaderQueryReturn<DataType> {
+  data?: DataType;
   loading: boolean;
   reload: () => void;
 }
