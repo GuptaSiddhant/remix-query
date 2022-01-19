@@ -1,1 +1,1 @@
-export { useLoaderQuery } from "./useLoaderQuery";
+export { useQuery, QueryOptions } from "./useQuery";

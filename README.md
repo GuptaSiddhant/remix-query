@@ -2,28 +2,44 @@
 
 Keep your loader data in sync in your component without reloading the page.
 
-## useLoaderQuery
+## useQuery
 
-The hook to keep loader data of any (current or other) route in-sync at client-side without reloading the page. ([View source](./src/useLoaderQuery.ts))
+The hook to keep loader data of any (current or other) route in-sync at client-side without reloading the page. ([View source](./src/useQuery.ts))
+
+- Reload when window is visible (default: true)
+- Reload when internet re-connects (default: true)
+- Reload when window receives focus (default: false)
 
 ```tsx
-import { useLoaderQuery } from "remix-query";
+import { useQuery } from "remix-query";
 ```
 
-- Current route
+- Default
 
   ```tsx
-  // No polling
-  const { data, loading, reload } = useLoaderQuery<DataType>();
-  // With polling
-  const { data, loading } = useLoaderQuery<DataType>(5000);
+  const { data, loading, reload } = useQuery<DataType>();
+  ```
+
+- Polling
+
+  ```tsx
+  const { data, loading } = useQuery<DataType>({ reloadInterval: 5000 });
   ```
 
 - Other route
 
   ```tsx
-  // No polling
-  const { data, loading, reload } = useLoaderQuery<DataType>("/other/route");
-  // With polling
-  const { data, loading } = useLoaderQuery<DataType>("/other/route", 5000);
+  const { data, loading, reload } = useQuery<DataType>({
+    route: "/other/path",
+  });
+  ```
+
+- Other options
+
+  ```tsx
+  const { data, loading, reload } = useQuery<DataType>({
+    reloadOnWindowVisible: true
+    reloadOnWindowFocus: true
+    reloadOnReconnect: true
+  });
   ```
